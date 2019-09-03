@@ -42,3 +42,10 @@ compile_commands.json
 .idea/misc.xml
 *.xml
 .idea/cs214.iml
+
+#VSCode nonsense
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
