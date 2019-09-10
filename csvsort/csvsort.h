@@ -27,8 +27,6 @@ struct Record {
  */
 struct Record* create_record(int columns, char* line, int line_num);
 
-void* delete_record(struct Record*);
-
 /*
  * Represents a .csv file after read-in to memory,
  * where each row is represented as a Record struct.
@@ -42,7 +40,7 @@ void* delete_record(struct Record*);
 struct CSVFile {
     char* file_name;
     int num_of_records;
-    struct Record** records;
+    struct Record* records[];
 };
 
 /* Usage: Pass a file_name to generate a CSVFile struct and its
@@ -52,5 +50,7 @@ struct CSVFile {
  * @returns struct CSVFile; NULL if file does not exist or is not of .csv type.
  */
 struct CSVFile* read_file(char* file_name);
+
+void free_csv(struct CSVFile* csv);
 
 #endif //CS214_CSVSORT_H
