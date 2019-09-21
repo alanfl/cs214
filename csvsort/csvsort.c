@@ -11,6 +11,22 @@ int main(int argc, char** argv) {
 
     struct CSVFile* csv = read_file(argv[1]);
 
+    for(int i = 0; i < csv->num_of_records; i++) {
+        struct Record record = *csv->records[i];
+        for(int j = 0; j < csv->columns; j++) {
+            printf("%s", record.values[j]);
+        }
+    }
+
+    for(int i = 0; i < csv->num_of_records; i++) {
+        struct Record record = *csv->records[i];
+        for(int j = 0; j< csv->columns; j++) {
+            if (j == 2) {
+                printf("%s", record.values[j]);
+            }
+        }
+    }
+
     if(csv) {
         printf("%s was converted to CSVFile.", argv[1]);
         free_csv(csv);
@@ -20,14 +36,15 @@ int main(int argc, char** argv) {
 }
 
 struct Record* create_record(int num_columns, char* line, int line_num) {
-    struct Record* record = malloc(sizeof(struct Record));
+    struct Record* record = (struct Record *) malloc(sizeof(struct Record));
     record->record_num = line_num;
-    record->values = malloc(num_columns * sizeof(char *));
+    record->values = (char **) malloc(sizeof(char *) * num_columns);
 
     int col = 0;
-    char * p = strtok(line, ",");
+    char* p = strtok(line, ",\n\r");
     while(p != NULL) {
-        record->values[col] = p;
+        record->values[col] = malloc(sizeof(p));
+        strcpy(record->values[col], p);
         col++;
         if(col > num_columns) {
             return NULL; // Immediately throw error if line elements exceeds the number of columns
@@ -49,7 +66,7 @@ struct CSVFile* read_file(char* file_name) {
 
     // Check that file is of .csv type
     char *dot = strchr(file_name, '.');
-    if (dot && strcmp(dot, ".csv")) {
+    if (dot && strcmp(dot, ".csv") != 0) {
         printf("%s", "Error: file must have extension '.csv'\n");
         return NULL;
     }
@@ -74,7 +91,7 @@ struct CSVFile* read_file(char* file_name) {
     struct CSVFile* csv = malloc(sizeof(struct CSVFile));
     csv->file_name = file_name;
     csv->num_of_records = lines;
-    csv->records = malloc(lines * sizeof(struct Record*));
+    csv->records = (struct Record **) malloc(lines * sizeof(struct Record*));
 
     rewind(csv_file);
 
@@ -91,13 +108,16 @@ struct CSVFile* read_file(char* file_name) {
         p = strtok(NULL, ",");
     }
 
+    csv->columns = num_columns;
+
     // Populate Record array
 
     rewind(csv_file);
 
     int line_num = 0;
     while(fgets(line, 256, csv_file) != NULL) {
-        csv->records[line_num] = create_record(num_columns,line, line_num);
+        csv->records[line_num] = (struct Record *) malloc(sizeof(struct Record));
+        csv->records[line_num] = create_record(num_columns, line, line_num);
         line_num++;
     }
 

@@ -1,0 +1,46 @@
+# Test Plan
+
+<p>The following outlines the test plan for Assignment 0.
+</p>
+
+---
+## Check Parsing and Tokenizer
+<p>The following inputs check if the tokenizer is successfully parsing
+both expressions and tokens. We are not checking errors at this point.
+</p>
+
+1. `a`
+
+2. `a + b`
+
+---
+## Parse Errors
+
+<p>The following inputs contain tokens that should result in parse errors, although
+the resultant expression would not be illegal if the tokens were valid.
+</p>
+
+1. `a + b`
+
+2. `1 * asdf`
+
+3. `trur AND false`
+
+4. `true ANND false`
+
+5. `true AND falxe`
+
+6.
+
+---
+## Invalid Expressions
+
+<p>The following inputs contain tokens that are all valid, but are combined in such a way
+that the resultant expression is illegal
+</p>
+
+---
+## Mixed Errors
+
+<p>The following inputs contain tokens that are invalid, as well as illegal expressions
+</p>

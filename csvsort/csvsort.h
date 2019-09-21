@@ -33,6 +33,7 @@ struct Record* create_record(int columns, char* line, int line_num);
  *
  * @attribute char* file_name = Name of the file
  * @attribute int num_of_records = Number of rows this .csv file possesses
+ * @attribute int columns = number of columns in the .csv file
  * @attribute struct Record records[] = The array of Record structs associated with this file
  *
  * NOTE: The first element in the "records" array represents the columns
@@ -40,7 +41,8 @@ struct Record* create_record(int columns, char* line, int line_num);
 struct CSVFile {
     char* file_name;
     int num_of_records;
-    struct Record* records[];
+    int columns;
+    struct Record** records;
 };
 
 /* Usage: Pass a file_name to generate a CSVFile struct and its
@@ -51,6 +53,10 @@ struct CSVFile {
  */
 struct CSVFile* read_file(char* file_name);
 
+/*
+ * Usage: Use to free allocated memory for both the parent
+ * struct as well as children.
+ */
 void free_csv(struct CSVFile* csv);
 
 #endif //CS214_CSVSORT_H
