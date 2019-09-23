@@ -24,27 +24,83 @@ int validate_arithmetic_operator(char);
 int get_expression_end(char *);
 
 int string_length(char *);
+void string_copy(const char* source, char* dest, int length);
+
+typedef struct Node {
+    char* data;
+    struct Node* next;
+} Node;
+
+void print_list(Node* head);
+
+Node* tokenize(const char* str, char delim, int end);
 
 int main(int argc, char** argv) {
+    if(argc == 1) {
+        printf("%s\n", "Error: No argument.");
+    }
+
     if(argc > 2) {
-        printf("%s", "Error: Too many arguments.");
+        printf("%s\n", "Error: Too many arguments.");
         return 0;
     }
 
     char* str = argv[1];
-    int str_len = string_length(str);
+    Node* head = tokenize(str, ';', string_length(str));
 
-    // Iterate the entire statement
-    for(int i = 0; i < str_len; i++) {
-        // Get bounds for current expression
-        int state = 0;
-        int start = i;
-        int end = get_expression_end(str);
+    while(head != NULL) {
+        Node* expression_head = tokenize(head->data, ' ', string_length(head->data));
+        print_list(expression_head);
+        head = head->next;
+    }
+    print_list(head);
 
-        if(validate_logical_expression(str, start, end)) {
-            printf("%s")
+    return 0;
+}
+
+Node* tokenize(const char* str, char delim, int end) {
+    Node *head = NULL;
+    Node *prev = NULL;
+
+    int start_index = 0;
+    for(int i = 0; i < end; i++) {
+        if(str[i] == delim || str[i] == '\0') {
+            if(i != start_index) {
+                Node* new_node = malloc(sizeof(Node));
+                new_node->data = malloc( (i-start_index) * sizeof(char) + 1);
+                new_node->next = NULL;
+
+                string_copy(&str[start_index], new_node->data, i-start_index);
+
+                // Check if list is empty, if not step over
+                // Otherwise assign head
+                if(prev != NULL)
+                    prev->next = new_node;
+                else
+                    head = new_node;
+                prev = new_node;
+            }
+
+            if(str[i] != '\0') {
+                Node* delimiter_node = malloc(sizeof(Node));
+                delimiter_node->data = malloc(sizeof(char) + 1);
+                delimiter_node->next = NULL;
+
+                delimiter_node->data[0] = delim;
+                delimiter_node->data[1] = '\0';
+
+                if(prev != NULL)
+                    prev->next = delimiter_node;
+                else
+                    head = delimiter_node;
+                prev = delimiter_node;
+            }
+
+            start_index = i + 1;
         }
     }
+
+    return head;
 }
 
 int string_length(char* str) {
@@ -69,4 +125,19 @@ int get_expression_end(char * str) {
     }
 
     return index;
+}
+
+void print_list(Node* head) {
+    while( head != NULL) {
+        printf("'%s'\n", head->data);
+        head = head->next;
+    }
+}
+
+void string_copy(const char* source, char* destination, int length) {
+    for(int i = 0; i<length; i++) {
+        destination[i] = source[i];
+    }
+
+    destination[length] = '\0';
 }
