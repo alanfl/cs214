@@ -5,33 +5,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-enum valid{no = 0, yes = 1};
-
-int validate_logical_expression(char *, int start, int end);
-int validate_arithmetic_expression(char *, int start, int end);
-
-int validate_operand(char *);
-
-int validate_logical_operand(char *);
-int validate_arithmetic_operand(char);
-
-int validate_operator(char *);
-
-int validate_logical_operator(char *);
-int validate_unary_operator(char *);
-int validate_arithmetic_operator(char);
-
-int get_expression_end(char *);
-
-int string_length(char *);
-void string_copy(const char* source, char* dest, int length);
-
 typedef struct Node {
     char* data;
     struct Node* next;
 } Node;
 
 void print_list(Node* head);
+
+int validate_expression(Node* head, int expression_num);
+
+int get_token_type(Node* token);
+
+int string_length(char *);
+void string_copy(const char* source, char* dest, int length);
 
 Node* tokenize(const char* str, char delim, int end);
 
@@ -51,6 +37,9 @@ int main(int argc, char** argv) {
     while(head != NULL) {
         Node* expression_head = tokenize(head->data, ' ', string_length(head->data));
         print_list(expression_head);
+        printf("\n");
+
+        validate_expression(expression_head);
         head = head->next;
     }
     print_list(head);
@@ -103,6 +92,23 @@ Node* tokenize(const char* str, char delim, int end) {
     return head;
 }
 
+/*
+ * Usage: accepts the head of a tokenized expression linked list and
+ * validates whether or not the expression is legal.
+ */
+int validate_expression(Node* head, int expression_num) {
+    if (expression_num != 0) {
+        if(string_compare(head->data, " ") != 1) {
+            printf("Error: Incomplete expression")
+        }
+    }
+
+    while(head != NULL) {
+
+        head = head->next;
+    }
+}
+
 int string_length(char* str) {
     int length = 0;
     while(*str != '\0') {
@@ -114,22 +120,9 @@ int string_length(char* str) {
     return length + 1;
 }
 
-int get_expression_end(char * str) {
-    int index = 0;
-    while(*str != '\0') {
-        index++;
-        if(*str == ';') {
-            return index;
-        }
-        str++;
-    }
-
-    return index;
-}
-
 void print_list(Node* head) {
     while( head != NULL) {
-        printf("'%s'\n", head->data);
+        printf("'%s',", head->data);
         head = head->next;
     }
 }
@@ -140,4 +133,60 @@ void string_copy(const char* source, char* destination, int length) {
     }
 
     destination[length] = '\0';
+}
+
+/* Usage: accepts two strings and compares each character iteratively
+ * Returns 1 if the strings are equal, 0 otherwise.
+ */
+int string_compare(char* first, char* second) {
+    int first_length = string_length(first);
+    int second_length = string_length(second);
+
+    if(first_length != second_length) {
+        return 0;
+    }
+
+    for(int i = 0; i < first_length; i++) {
+        if(first[i] != second[i]) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+/*
+ * Token types:
+ * -1 = Illegal, unknown tokens
+ * 0 = Empty token
+ * 1 = Arithmetic operand token
+ * 2 = Logical operand token
+ * 3 = Arithmetic operator token
+ * 4 = Logical operator token
+ * 5 = Logical, unary, operator token
+ */
+int get_token_type(Node* token) {
+
+    // 0 = Empty tokens (though not necessarily illegal)
+    if(token == NULL) return 0;
+    if(token->data[0] == '\0') return 0;
+
+    // 1 = Legal arithmetic tokens
+    if(string_compare("0", token->data)) return 1;
+    if(string_compare("1", token->data)) return 1;
+    if(string_compare("2", token->data)) return 1;
+    if(string_compare("3", token->data)) return 1;
+    if(string_compare("4", token->data)) return 1;
+    if(string_compare("5", token->data)) return 1;
+    if(string_compare("6", token->data)) return 1;
+    if(string_compare("7", token->data)) return 1;
+    if(string_compare("8", token->data)) return 1;
+    if(string_compare("9", token->data)) return 1;
+
+    // 2 = Logical operand tokens
+    if(string_compare("true", token->data)) return 2;
+    if(string_compare("false", token->data)) return 2;
+
+    // 3 = Arithmetic operator tokens
+
 }
