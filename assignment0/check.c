@@ -17,8 +17,8 @@ int validate_expression(Node* head, Node* error, int expression_index);
 int get_token_type(Node* token);
 
 // String functions
-int string_length(char *);
-void string_copy(const char* source, char* dest, int length);
+int string_length(const char * str);
+void string_copy(char* destination, const char* source);
 int string_compare(char* first, char* second);
 
 Node* tokenize(const char* str, char delim, int end);
@@ -77,22 +77,26 @@ int main(int argc, char** argv) {
  * Usage: Accepts a string, a delimiter character, and the length of the buffer to tokenize
  * and returns the head of a linked list containing all the tokens.
  *
- * Delimiters are considered valid as long as there are two characters surrounding it, even if they
- * are also instances of the delimiter
+ * Note: the space delimiter (" ") is passed in as a token if there is another space separating it from the next token
  */
 Node* tokenize(const char* str, char delim, int end) {
     Node *head = NULL;
     Node *prev = NULL;
 
     int start_index = 0;
-    for(int i = 0; i <= end; i++) {
-        if( str[i] == delim || str[i] == '\0') {
-            if(i != start_index) {
+    if (delim == ' ') {
+        start_index = 1;
+    }
+
+    for(int i = start_index; i < end; i++) {
+
+        if( str[i] == delim) {
+//            if(i != start_index) {
                 Node* new_node = malloc(sizeof(Node));
-                new_node->data = malloc( (i-start_index) * sizeof(char) + 1);
+                new_node->data = calloc((i-start_index) + 1, (i-start_index) * sizeof(char) + 1);
                 new_node->next = NULL;
 
-                string_copy(&str[start_index], new_node->data, i-start_index);
+                string_copy(new_node->data, &str[start_index]);
 
                 // Check if list is empty, if not step over
                 // Otherwise assign head
@@ -103,9 +107,23 @@ Node* tokenize(const char* str, char delim, int end) {
                 prev = new_node;
 
                 start_index = i + 1;
-            }
+//            }
         }
     }
+
+    // TODO append last node
+    int len = string_length(str);
+    Node* last_node = malloc(sizeof(Node));
+    last_node->data = calloc(len - start_index + 1, (len - start_index + 1) * sizeof(char));
+    last_node->next = NULL;
+
+    string_copy(last_node->data, &str[start_index]);
+
+    if(prev != NULL)
+        prev->next = last_node;
+    else
+        head = last_node;
+
 
     return head;
 }
@@ -487,7 +505,7 @@ Node* add_to_list(Node* head, char* data) {
     return head;
 }
 
-int string_length(char* str) {
+int string_length(const char* str) {
     int length = 0;
     while(*str != '\0') {
         length++;
@@ -507,10 +525,11 @@ void print_list(Node* head) {
     }
 }
 
-void string_copy(const char* source, char* destination, int length) {
-    for(int i = 0; i<length; i++) {
-        destination[i] = source[i];
-    }
+void string_copy(char* destination, const char* source) {
 
-    destination[length] = '\0';
+    while(*source != '\0') {
+        *destination = *source;
+        source++;
+        destination++;
+    }
 }
