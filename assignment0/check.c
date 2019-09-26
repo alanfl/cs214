@@ -10,26 +10,27 @@ typedef struct Node {
     struct Node* next;
 } Node;
 
+// Linked list and Node functions
 void print_list(Node* head);
-
-int validate_expression(Node* head, Node* error, int expression_index);
-
-int get_token_type(Node* token);
-
-// String functions
-int string_length(const char * str);
-void string_copy(char* destination, const char* source);
-int string_compare(char* first, char* second);
-
-Node* tokenize(const char* str, char delim, int end);
-
 Node* add_to_list(Node* head, char* data);
 
+// String functions
+int string_compare(const char* first, const char* second);
+
+// Expression and token specific functions
+Node* tokenize(const char* str, char delim);
+int validate_expression(Node* head, Node* error, int expression_index);
+int get_token_type(Node* token);
+Node* add_token(Node *head, const char *str, int start_index, int end_index);
+
+// Error stuff
 char* print_error(char* error_msg, int index);
+char* print_token(char* token_data);
 
 int main(int argc, char** argv) {
     if(argc == 1) {
         printf("%s\n", "Error: No argument.");
+        return 0;
     }
 
     if(argc > 2) {
@@ -38,14 +39,14 @@ int main(int argc, char** argv) {
     }
 
     char* str = argv[1];
-    Node* head = tokenize(str, ';', string_length(str));
+    Node* head = tokenize(str, ';');
     Node* error_list = add_to_list(NULL, NULL);
     int arithmetic_count = 0;
     int logical_count = 0;
     int expression_total = 0;
 
     while(head != NULL) {
-        Node* expression_head = tokenize(head->data, ' ', string_length(head->data));
+        Node* expression_head = tokenize(head->data, ' ');
         int expression_type = validate_expression(expression_head, error_list, expression_total);
 
         // Expression was validated, and is arithmetic
@@ -74,57 +75,41 @@ int main(int argc, char** argv) {
 }
 
 /*
- * Usage: Accepts a string, a delimiter character, and the length of the buffer to tokenize
+ * Usage: Accepts a string and a delimiter character to tokenize that string
  * and returns the head of a linked list containing all the tokens.
  *
- * Note: the space delimiter (" ") is passed in as a token if there is another space separating it from the next token
+ * Note: the space delimiter (" ") is added as a token to the list if there is another space separating it from the next token
+ * TODO factor that out for future use
  */
-Node* tokenize(const char* str, char delim, int end) {
+Node* tokenize(const char* str, char delim) {
     Node *head = NULL;
-    Node *prev = NULL;
 
+    int current_index = 0;
     int start_index = 0;
-    if (delim == ' ') {
-        start_index = 1;
+
+    if (delim == ' ' && str[current_index] != '\0')
+        current_index = 1;
+
+    while(str[current_index] != '\0') {
+        if( str[current_index] == delim ) {
+            // Create a token for the string from start_index to current_index exclusive
+            head = add_token(head, str, start_index, current_index);
+
+            // Move to next character after delimiter
+            // Also push the start_index marker up as well
+            current_index++;
+            start_index = current_index;
+
+            // Note (special case)
+            // Since a ' ' immediately after another ' ' is considered valid content,
+            // begin looking for delims AFTER that first whitespace
+            if (delim == ' ' && str[start_index] != 0) current_index++;
+        } else
+            current_index++;
     }
 
-    for(int i = start_index; i < end; i++) {
-
-        if( str[i] == delim) {
-//            if(i != start_index) {
-                Node* new_node = malloc(sizeof(Node));
-                new_node->data = calloc((i-start_index) + 1, (i-start_index) * sizeof(char) + 1);
-                new_node->next = NULL;
-
-                string_copy(new_node->data, &str[start_index]);
-
-                // Check if list is empty, if not step over
-                // Otherwise assign head
-                if(prev != NULL)
-                    prev->next = new_node;
-                else
-                    head = new_node;
-                prev = new_node;
-
-                start_index = i + 1;
-//            }
-        }
-    }
-
-    // TODO append last node
-    int len = string_length(str);
-    Node* last_node = malloc(sizeof(Node));
-    last_node->data = calloc(len - start_index + 1, (len - start_index + 1) * sizeof(char));
-    last_node->next = NULL;
-
-    string_copy(last_node->data, &str[start_index]);
-
-    if(prev != NULL)
-        prev->next = last_node;
-    else
-        head = last_node;
-
-
+    // Append the "last" token
+    head = add_token(head, str, start_index, current_index);
     return head;
 }
 
@@ -140,43 +125,8 @@ Node* tokenize(const char* str, char delim, int end) {
  * 1 = Logical type
  */
 int validate_expression(Node* head, Node* error, int expression_index) {
+    // Track what kind of expression we have
     int expression_type = -1;
-
-    // First token in expression should be a whitespace token if this isn't the first expression
-    if(expression_index != 0 && get_token_type(head) != 0) {
-        // Get token type
-        int type = get_token_type(head);
-
-        /*
-         * Cases:
-         * 1. Unexpected operand
-         * 2. Unexpected operator
-         * 3. Unexpected token (unidentifiable)
-         * 4. Empty/NULL token
-         */
-
-        // 1. Unexpected operand
-        // Add error to buffer, stay on current token
-        if(type == 1 || type == 2) {
-            add_to_list(error, print_error("Error: Parse error in expression %d: Unexpected operand.", expression_index));
-        }
-        // 2. Unexpected operator
-        // Add error to buffer, stay on current token
-        else if(type == 3 || type == 4 || type == 5) {
-            add_to_list(error, print_error("Error: Parse error in expression %d: Unexpected operator.", expression_index));
-        }
-        // 3. Unidentifiable token
-        // Add error to buffer, stay on current token
-        else if(type == -2) {
-            add_to_list(error, print_error("Error: Parse error in expression %d: Unexpected operator, could not identify.", expression_index));
-        }
-        // 4. NULL or empty token
-        // Expression is empty, cannot proceed forward.
-        // Return immediately, Expression-scope will add error to buffer
-        else if(type == -1) {
-            return -1;
-        }
-    }
 
     // Need to track when the expression has been completed
     int expression_complete = 0;
@@ -188,9 +138,7 @@ int validate_expression(Node* head, Node* error, int expression_index) {
     // Track the next expected token, for iteration reasons
     int expected_token_type = -3;
 
-    // TODO determine if the first legal TOKEN characterizes the expression OR
-
-    // TODO determine if the first legal OPERATOR characterizes the expression
+    // UPDATE: The first legal OPERATOR determines the expression type
 
     // Iterate tokens until out of tokens
     // NOTE: An expression's type is determined by the first legal token that appears in the expression
@@ -199,7 +147,7 @@ int validate_expression(Node* head, Node* error, int expression_index) {
 
         // If the expression is considered complete, wasn't terminated, and the error was not added
         // Add the error, and track that the error was added.
-        if (expression_complete == 1 && expression_error_added != 1) {
+        if (expression_complete == 1 && expression_error_added != 1 && token_type != -1) {
             add_to_list(error, print_error("Error: Scan error in expression %d: Expression was not ended.", expression_index));
             expression_error_added = 1;
         }
@@ -207,28 +155,37 @@ int validate_expression(Node* head, Node* error, int expression_index) {
         // == Legal Cases ===
         // 1. Arithmetic operand
         if(token_type == 1) {
-            // Not expecting any type of token, this token characterizes the expression
+            // Not expecting any type of token, this is the first token, and contextualizes the next
             if (expected_token_type == -3 && expression_complete != 1) {
-                expression_type = 0;
+                printf("Found %s, OK", head->data); // todo remove debug
 
-                // Next token should be an arithmetic operator
                 expected_token_type = 3;
             }
+
             // This token was NOT expected
             else if (expected_token_type != 1) {
                 // Not expected because the expression is complete
-                if(expression_complete == 1)
+                if(expression_complete == 1) {
                     add_to_list(error, print_error("Error: Parse error in expression %d: Unexpected operand.", expression_index));
+                    add_to_list(error, print_token(head->data));
 
+                    expected_token_type = 3;
+                }
                 // Not expected because there was a type mismatch
-                else if(expression_type == 1)
+                else if(expected_token_type == 2 || expected_token_type == 4 || expected_token_type == 5) {
                     add_to_list(error, print_error("Error: Parse error in expression %d: Type mismatch.", expression_index));
+                    add_to_list(error, print_token(head->data));
 
-                // TODO determine if despite a type mismatch, this token predicts the next token
+                    expected_token_type = 3;
+                }
             }
-            // This token was expected, so this token should end the expression
-            else if (expression_complete != 1 && expected_token_type == 1) {
+
+            // This token was expected, so this token should end the expression only if the expression wasn't already ended
+            else if (expression_complete != 1) {
                 expression_complete = 1;
+
+                // Also expecting some sort of NULL token to end the expression
+                expected_token_type = -1;
             }
 
             head = head->next;
@@ -236,17 +193,17 @@ int validate_expression(Node* head, Node* error, int expression_index) {
 
         // 2. Arithmetic operator
         else if (token_type == 3) {
-            // Not expecting any type of token, this is the first token and is therefore invalid
-            // TODO determine if this still characterizes the expression type
+            // Not expecting any type of token so this is the first token and is therefore invalid
             if (expected_token_type == -3 && expression_complete != 1) {
-                // TODO clarify this line
-                // expression_type = 0;
-
                 add_to_list(error, print_error("Error: Parse error in expression %d: Unexpected operator.", expression_index));
+
+                // NOTE: even though this is considered an error, it still classifies the expression type
+                expression_type = 0;
             }
+
             // This token is NOT expected
             else if (expected_token_type != 3) {
-                // Expression complete, not expected
+                // Expression complete, so this is not expected
                 if(expression_complete == 1)
                     add_to_list(error, print_error("Error: Parse error in expression %d: Unexpected operator.", expression_index));
 
@@ -256,10 +213,11 @@ int validate_expression(Node* head, Node* error, int expression_index) {
 
                 // TODO determine if despite a type mismatch, this token predicts the next token
             }
-            // This token was expected, next token should be an arithmetic operand
-            else if (expected_token_type == 3) {
-                expected_token_type = 1;
-            }
+            // This token was expected, no issue, also this now sets the type of expression
+            else
+                expression_type = 0;
+
+            // No matter what errors are thrown, this token predicts the next
 
             head = head->next;
         }
@@ -460,33 +418,44 @@ int get_token_type(Node* token) {
 /* Usage: accepts two strings and compares each character iteratively
  * Returns 1 if the strings are equal, 0 otherwise.
  */
-int string_compare(char* first, char* second) {
-    int first_length = string_length(first);
-    int second_length = string_length(second);
-
-    if(first_length != second_length) {
+int string_compare(const char* first, const char* second) {
+    // Cannot compare if either strings are NULL
+    // Immediately exit with unequal code
+    if(first == NULL || second == NULL) {
         return 0;
     }
 
-    for(int i = 0; i < first_length; i++) {
-        if(first[i] != second[i]) {
-            return 0;
-        }
+    int index = 0;
+
+    while(first[index] != '\0' && second[index] != '\0' && first[index] == second[index]) {
+        index++;
     }
 
-    return 1;
+    if(first[index] == '\0' && second[index] == '\0')
+        return 1;
+    else
+        return 0;
 }
 
+// Prints a formatted error message:
+// Error: <error_type> in expression <num>: <error>
 char* print_error(char* error_msg, int index) {
     char *error;
     asprintf(&error, error_msg, index);
     return error;
 }
 
+// Prints a formatted token message:
+char* print_token(char *token_data) {
+    char *token_msg;
+    asprintf(&token_msg, "\t'%s'", token_data);
+    return token_msg;
+}
+
 Node* add_to_list(Node* head, char* data) {
     Node* prev = head;
 
-    Node* new_node = malloc(sizeof(Node));
+    Node* new_node = (Node*) malloc(sizeof(Node));
     new_node->next = NULL;
     new_node->data = data;
 
@@ -505,15 +474,21 @@ Node* add_to_list(Node* head, char* data) {
     return head;
 }
 
-int string_length(const char* str) {
-    int length = 0;
-    while(*str != '\0') {
-        length++;
-        str++;
+// Creates a token from some input string and appends it to the passed list of tokens
+Node* add_token(Node *head, const char *str, int start_index, int end_index) {
+
+    // Allocate the length of the selection that is being copied in, plus one
+    // for the null terminator
+    char *new_token = (char *) calloc(sizeof(char), end_index - start_index + 1);
+
+    int index = 0;
+    for(int i = start_index; i < end_index; i++) {
+        new_token[index++] = str[i];
     }
 
-    // Include NULL terminator
-    return length + 1;
+    head = add_to_list(head, new_token);
+
+    return head;
 }
 
 void print_list(Node* head) {
@@ -522,14 +497,5 @@ void print_list(Node* head) {
     while( head != NULL) {
         printf("%s\n", head->data);
         head = head->next;
-    }
-}
-
-void string_copy(char* destination, const char* source) {
-
-    while(*source != '\0') {
-        *destination = *source;
-        source++;
-        destination++;
     }
 }
