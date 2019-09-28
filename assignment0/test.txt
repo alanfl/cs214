@@ -222,8 +222,42 @@ Unexpected operator
 --> 1 expressions, 0 arithmetic, 1 logical
 
 Unknown operator
-17.
+17. `2 asdf`
+--> 2 OK
+--> Error: Unknown operator.
+--> Error: Missing operand.
 
+18. `2 +2`
+--> 2 OK
+--> Error: Unknown operator.
+--> Error: Missing operand.
 
+19. `1 a 2`
+--> 1 OK
+--> Error: Unknown operator.
+--> 2 OK
 
-Leading spaces errors
+Missing operand
+20. `NOT`
+--> NOT OK
+--> Error: Missing operand.
+--> Error: Expression incomplete.
+
+21. `1 + `
+--> 1 OK
+--> + OK
+--> Error: Missing operand.
+--> Error: Expression incomplete.
+
+Extra Space Errors
+22. `1 + 2 `
+--> 1 OK
+--> + OK
+--> 2 OK
+--> Error: Expression not ended
+
+23. ` 1 + 2`
+--> Error: Unknown identifier.
+--> Error: Unexpected operand.
+--> 2 OK
+

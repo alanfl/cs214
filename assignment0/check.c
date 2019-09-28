@@ -342,7 +342,7 @@ int validate_expression(char* expression_str, Node* error, int expression_index)
             // Note: this MUST be the first token in the pattern, so all subsequent encounters are unexpected
             else {
                 // Expression has ended, this is unexpected
-                if(expression_complete == 1) {
+                if(expression_complete == 1 || expected_token_type != 5) {
                     add_to_list(error, print_error("Error: Parse error in expression %d: Unexpected operator.", expression_index));
                     add_to_list(error, print_token(head->data));
                 }
