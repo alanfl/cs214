@@ -21,7 +21,7 @@ int string_compare(const char* first, const char* second);
 
 // Expression and token specific functions
 Node* tokenize(const char* str, char delim);
-int validate_expression(Node* head, Node* error, int expression_index);
+int validate_expression(char* expression_str, Node* error, int expression_index);
 int get_token_type(Node* token);
 Node* add_token(Node *head, const char *str, int start_index, int end_index);
 
@@ -42,14 +42,14 @@ int main(int argc, char** argv) {
 
     char* str = argv[1];
     Node* head = tokenize(str, ';');
+    Node* list = head;
     Node* error_list = add_to_list(NULL, NULL);
     int arithmetic_count = 0;
     int logical_count = 0;
     int expression_total = 0;
 
     while(head != NULL) {
-        Node* expression_head = tokenize(head->data, ' ');
-        int expression_type = validate_expression(expression_head, error_list, expression_total);
+        int expression_type = validate_expression(head->data, error_list, expression_total);
         // Expression was validated, and is arithmetic
         if(expression_type == 0) {
             arithmetic_count++;
@@ -70,8 +70,14 @@ int main(int argc, char** argv) {
     }
 
     printf("Found %d expression(s): %d arithmetic, %d logical.\n", expression_total, arithmetic_count, logical_count);
-    print_list(error_list);
+    if(error_list == NULL || error_list->next == NULL) {
+        printf("OK\n");
+    } else {
+        print_list(error_list);
+    }
 
+    free(list);
+    free(error_list);
     return 0;
 }
 
@@ -80,7 +86,6 @@ int main(int argc, char** argv) {
  * and returns the head of a linked list containing all the tokens.
  *
  * Note: the space delimiter (" ") is added as a token to the list if there is another space separating it from the next token
- * TODO factor that out for future use
  */
 Node* tokenize(const char* str, char delim) {
     Node *head = NULL;
@@ -115,9 +120,9 @@ Node* tokenize(const char* str, char delim) {
 }
 
 /*
- * Usage: accepts the head of a tokenized expression linked list and
- * validates whether or not the expression is legal.
- *
+ * Accepts a string and validates whether or not its resultant tokens are
+ * a legal expression
+ *  *
  * Also accepts a list of errors to append errors to.
  *
  * Returns:
@@ -125,7 +130,14 @@ Node* tokenize(const char* str, char delim) {
  * 0 = Arithmetic type
  * 1 = Logical type
  */
-int validate_expression(Node* head, Node* error, int expression_index) {
+int validate_expression(char* expression_str, Node* error, int expression_index) {
+
+    // This will store the tokenized expression string
+    Node* head = NULL;
+
+    // This will store the beginning of the expression linked list for free() purposes
+    Node* list = NULL;
+
     // Track what kind of expression we have
     int expression_type = -1;
 
@@ -139,31 +151,22 @@ int validate_expression(Node* head, Node* error, int expression_index) {
     // Track the next expected token, for iteration reasons
     int expected_token_type = -3;
 
-    // Check for a leading whitespace in the first token if this
-    // is not the first expression
-    if(expression_index != 0 ) {
-        if(head != NULL && head->data[0] == ' ') {
+    // If this isn't the first expression we're parsing, we need to first check for a leading whitespace
+    if (expression_index != 0) {
 
-            // If a whitespace was found, shift string so whitespace is removed
-            char * temp = head->data;
-            head->data = realloc(head->data, sizeof(temp) - 1);
-
-            // Something seriously wrong with realloc, immediately terminate
-            if(!head->data) {
-                exit(-1);
-            }
-
-            temp++;
-            while(*temp != '\0') {
-                head->data = temp;
-                temp++;
-            }
+        // If the leading whitespace is present, throw no error and adjust the string so it is
+        // excluded from tokenizing
+        if(expression_str != NULL && expression_str[0] == ' ') {
+            list = head = tokenize(expression_str+1, ' ');
         }
 
-        // Leading whitespace not found, whatever token comes next is unexpected BY DEFAULT
+        // Leading whitespace is not present, so whatever comes next will immediately be unexpected
         else {
+            list = head = tokenize(expression_str, ' ');
             expected_token_type = -4;
         }
+    } else {
+        head = tokenize(expression_str, ' ');
     }
 
     // UPDATE: The first legal OPERATOR determines the expression type
@@ -184,7 +187,7 @@ int validate_expression(Node* head, Node* error, int expression_index) {
         if(token_type == 1) {
             // Not expecting any type of token, this is the first token
             if (expected_token_type == -3 && expression_complete != 1) {
-                printf("Found %s, OK\n", head->data); // todo remove debug
+//                printf("Found %s, OK\n", head->data); // todo remove debug
             }
             // This token was NOT expected
             else if (expected_token_type != 1) {
@@ -195,7 +198,7 @@ int validate_expression(Node* head, Node* error, int expression_index) {
                 }
                 // Not expected for any other reason
                 // UPDATE: exclude from cases where some kind of operand was expected, but a type was not set, so we cannot infer the type
-                else if(expected_token_type == 3 || expected_token_type == 4 || (expression_type != -1 && expected_token_type == 2)){
+                else if (expected_token_type == -4 || expected_token_type == 3 || expected_token_type == 4 || (expression_type != -1 && expected_token_type == 2)){
                     add_to_list(error, print_error("Error: Parse error in expression %d: Unexpected operand", expression_index));
                     add_to_list(error, print_token(head->data));
                 }
@@ -204,10 +207,10 @@ int validate_expression(Node* head, Node* error, int expression_index) {
             if (expected_token_type == 1 || expected_token_type == 2) {
                 expression_complete = 1;
 
-                printf("Found %s, OK\n", head->data); // todo remove debug
+//                printf("Found %s, OK\n", head->data); // todo remove debug
 
                 // We also then expect the next token to be terminating
-                expected_token_type = -1;
+                expected_token_type = -4;
             }
             // Otherwise next token should be an arithmetic operator
             else {
@@ -239,7 +242,7 @@ int validate_expression(Node* head, Node* error, int expression_index) {
             }
             // This token was expected, no issue
             else {
-                printf("Found %s, OK\n", head->data); // todo remove debug
+//                printf("Found %s, OK\n", head->data); // todo remove debug
             }
 
             // This sets the type of expression only if expression has no type
@@ -255,7 +258,7 @@ int validate_expression(Node* head, Node* error, int expression_index) {
         else if (token_type == 2) {
             // Not expecting any kind of token, this is the first and predicts the next
             if(expected_token_type == -3 && expression_complete != 1) {
-                printf("Found %s, OK\n", head->data); // todo remove debug
+//                printf("Found %s, OK\n", head->data); // todo remove debug
             }
             // This token is NOT expected
             else if (expected_token_type != 2) {
@@ -266,7 +269,7 @@ int validate_expression(Node* head, Node* error, int expression_index) {
                 }
                 // Not expected for any other reason
                 // UPDATE: exclude from cases where some kind of operand was expected, but a type was not set, so we cannot infer the type
-                else if(expected_token_type == 3 || expected_token_type == 4 || (expression_type != -1 && expected_token_type == 1)){
+                else if(expected_token_type == -4 || expected_token_type == 3 || expected_token_type == 4 || (expression_type != -1 && expected_token_type == 1)){
                     add_to_list(error, print_error("Error: Parse error in expression %d: Unexpected operand", expression_index));
                     add_to_list(error, print_token(head->data));
                 }
@@ -276,10 +279,10 @@ int validate_expression(Node* head, Node* error, int expression_index) {
             if (expected_token_type == 1 || expected_token_type == 2) {
                 expression_complete = 1;
 
-                printf("Found %s, OK\n", head->data); // todo remove debug
+//                printf("Found %s, OK\n", head->data); // todo remove debug
 
                 // We also then expect the next token to be terminating
-                expected_token_type = -1;
+                expected_token_type = -4;
             }
 
             // Otherwise, next token should be a logical operator
@@ -311,7 +314,7 @@ int validate_expression(Node* head, Node* error, int expression_index) {
             }
             // This token was expected, throw no issue
             else {
-                printf("Found %s, OK\n", head->data); // todo remove debug
+//                printf("Found %s, OK\n", head->data); // todo remove debug
             }
 
             // Set type only if expression has no type
@@ -327,7 +330,13 @@ int validate_expression(Node* head, Node* error, int expression_index) {
             // Not expecting any type of token, this is first token and characterizes the expression
             // Next token must also be a logical operand
             if (expected_token_type == -3 && expression_complete != 1) {
-                printf("Found %s, OK\n", head->data); // todo remove debug
+//                printf("Found %s, OK\n", head->data); // todo remove debug
+            }
+
+            // Missing whitespace, this is immediately unexpected
+            else if (expected_token_type == -4) {
+                add_to_list(error, print_error("Error: Parse error in expression %d: Unexpected operator.", expression_index));
+                add_to_list(error, print_token(head->data));
             }
             // Note: this MUST be the first token in the pattern, so all subsequent encounters are unexpected
             else {
@@ -366,7 +375,7 @@ int validate_expression(Node* head, Node* error, int expression_index) {
                 add_to_list(error, print_token(head->data));
 
                 expression_complete = 1;
-                expected_token_type = -1;
+                expected_token_type = -4;
             }
 
             // Expected some kind of operator, this is an unknown operator
@@ -387,18 +396,19 @@ int validate_expression(Node* head, Node* error, int expression_index) {
         // However, if the expression isn't complete, add that to the buffer
         else if (token_type == -1) {
             // Expression not complete
-            if(expression_complete != 1) {
-                // Case 1: we can identify what was missing
-                if(expected_token_type == 1 || expected_token_type == 2)
-                    add_to_list(error, print_error("Error: Scan error in expression %d: Missing operand.", expression_index));
-
-                else if (expected_token_type == 3 || expected_token_type == 4)
-                    add_to_list(error, print_error("Error: Parse error in expression %d: Missing operator.", expression_index));
-
-                // This error is added whether or not we can identify what was missing
-                add_to_list(error, print_error("Error: Parse error in expression %d: Incomplete expression.", expression_index));
+            if(expression_complete == 1) {
+//                // Case 1: we can identify what was missing
+//                if(expected_token_type == 1 || expected_token_type == 2)
+//                    add_to_list(error, print_error("Error: Scan error in expression %d: Missing operand.", expression_index));
+//
+//                else if (expected_token_type == 3 || expected_token_type == 4)
+//                    add_to_list(error, print_error("Error: Parse error in expression %d: Missing operator.", expression_index));
+//
+//                // This error is added whether or not we can identify what was missing
+//                add_to_list(error, print_error("Error: Parse error in expression %d: Incomplete expression.", expression_index));
+//            } else {
+                add_to_list(error, print_error("Error: Parse error in expression %d: Expression not ended.", expression_index));
             }
-
             head = head->next;
         }
     }
@@ -418,6 +428,7 @@ int validate_expression(Node* head, Node* error, int expression_index) {
         add_to_list(error, print_error("Error: Parse error in expression %d: Incomplete expression.", expression_index));
     }
 
+    free(list);
     return expression_type;
 }
 
@@ -540,7 +551,8 @@ Node* add_token(Node *head, const char *str, int start_index, int end_index) {
     char *new_token = (char *) calloc(sizeof(char), end_index - start_index + 1);
 
     int index = 0;
-    for(int i = start_index; i < end_index; i++) {
+    int i = start_index;
+    for(; i < end_index; i++) {
         new_token[index++] = str[i];
     }
 
@@ -555,5 +567,18 @@ void print_list(Node* head) {
     while( head != NULL) {
         printf("%s\n", head->data);
         head = head->next;
+    }
+}
+
+// Frees the list associated with a head
+void free_list(Node* head) {
+    while (head) {
+        Node* temp = head;
+        if(head->data != NULL)
+            free(head->data);
+
+        free(head);
+
+        head = temp->next;
     }
 }

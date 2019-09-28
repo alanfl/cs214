@@ -223,3 +223,7 @@ Unexpected operator
 
 Unknown operator
 17.
+
+
+
+Leading spaces errors
