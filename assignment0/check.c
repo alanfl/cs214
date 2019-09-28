@@ -339,6 +339,11 @@ int validate_expression(char* expression_str, Node* error, int expression_index)
                 add_to_list(error, print_error("Error: Parse error in expression %d: Unexpected operator.", expression_index));
                 add_to_list(error, print_token(head->data));
             }
+            // Expected a arithmetic operator, got this instead
+            else if (expected_token_type == 3) {
+                add_to_list(error, print_error("Error: Parse error in expression %d: Type mismatch.", expression_index));
+                add_to_list(error, print_token(head->data));
+            }
             // Note: this MUST be the first token in the pattern, so all subsequent encounters are unexpected
             else {
                 // Expression has ended, this is unexpected
