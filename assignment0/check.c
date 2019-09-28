@@ -193,7 +193,7 @@ int validate_expression(char* expression_str, Node* error, int expression_index)
             // This token was NOT expected
             else if (expected_token_type != 1) {
                 // Not expected because there was a type mismatch
-                if(expression_type == 1) {
+                if(expected_token_type ==  2) {
                     add_to_list(error, print_error("Error: Parse error in expression %d: Type mismatch.", expression_index));
                     add_to_list(error, print_token(head->data));
                 }
@@ -264,7 +264,7 @@ int validate_expression(char* expression_str, Node* error, int expression_index)
             // This token is NOT expected
             else if (expected_token_type != 2) {
                 // Not expected because Type mismatch
-                if(expression_type == 0) {
+                if(expected_token_type == 1) {
                     add_to_list(error, print_error("Error: Parse error in expression %d: Type mismatch.", expression_index));
                     add_to_list(error, print_token(head->data));
                 }
