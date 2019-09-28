@@ -1,46 +1,225 @@
-# Test Plan
+Test Plan
 
-<p>The following outlines the test plan for Assignment 0.
-</p>
+The following outlines the test plan for Assignment 0.
 
----
-## Check Parsing and Tokenizer
-<p>The following inputs check if the tokenizer is successfully parsing
-both expressions and tokens. We are not checking errors at this point.
-</p>
+=== Check Parsing and Tokenizer ===
+The following inputs check if the tokenizer is successfully parsing both expressions and tokens. Delimiters are ';' at statement-scope and ' ' at expression-scope. We are not checking validation errors at this point.
 
 1. `a`
+--> token{"a"}
 
 2. `a + b`
+--> token{"a"}, token{"b"}
+    
+3. `a +b`
+--> token{"a"}, token{"+b"}
 
----
-## Parse Errors
+4. `   ` (three spaces)
+--> token{" "}, token{" "}
 
-<p>The following inputs contain tokens that should result in parse errors, although
-the resultant expression would not be illegal if the tokens were valid.
-</p>
+5. `` (completely empty)
+--> token{""}
+
+6. `1 2 3; a bc`
+--> token{"1"}, token{"2"}, token{"3"}, token{" a"}, token{"bc"}
+
+7. ` 1 2 3 ;`
+--> token{" 1"}, token{"2"}, token{"3"}, token{""}, token{""}
+
+8. `;;`
+--> token{""}, token{""}, token{""}
+
+=== Parse Errors ===
+The following inputs contain tokens that should result in parse errors, although the resultant expression would not be illegal if the tokens were valid.
 
 1. `a + b`
+--> Unknown identifier 'a'
+--> Unexpected operator '+'
+--> Unknown operand 'b'
+--> 1 expression, 1 arithmetic, 0 logical
 
 2. `1 * asdf`
+--> 1 OK
+--> * OK
+--> Unknown operand 'asdf'
+--> 1 expression, 1 arithmetic, 0 logical
 
 3. `trur AND false`
+--> Unknown identifier 'trur'
+--> Unexpected operator 'AND'
+--> false OK
+--> 1 expression, 0 arithmetic, 1 logical
 
-4. `true ANND false`
+=== Valid Expressions ===
 
-5. `true AND falxe`
+The following inputs contain tokens that are all valid and arranged in a way such that the resultant expressions are also valid.
 
-6.
+Unary Operator w/True
+1. `NOT true`
+--> NOT OK
+--> true OK
+--> 1 expression, 0 arithmetic, 1 logical
 
----
-## Invalid Expressions
+Unary Operator w/False
+2. `NOT false`
+--> NOT OK
+--> false OK
+--> 1 expression, 0 arithmetic, 1 logical
 
-<p>The following inputs contain tokens that are all valid, but are combined in such a way
-that the resultant expression is illegal
-</p>
+Binary + operator
+3. `3 + 5`
+--> 3 OK
+--> + OK
+--> 5 OK
+--> 1 expression, 1 arithmetic, 0 logical
 
----
-## Mixed Errors
+Binary - operator
+4. `5 - 6`
+--> 5 OK
+--> - OK
+--> 6 OK
+--> 1 expression, 1 arithmetic, 0 logical
 
-<p>The following inputs contain tokens that are invalid, as well as illegal expressions
-</p>
+Binary * operator
+5. `7 * 8`
+--> 7 OK
+--> * OK
+--> 8 OK
+--> 1 expression, 1 arithmetic, 0 logical
+
+Binary / operator
+6. `9 / 1`
+--> 9 OK
+--> / OK
+--> 1 OK
+--> 1 expression, 1 arithmetic, 0 logical
+
+Binary AND operator
+7. `true AND false`
+--> true OK
+--> AND OK
+--> false OK
+--> 1 expression, 0 arithmetic, 1 logical
+
+Binary OR operator
+8. `false OR true`
+--> false OK
+--> AND OK
+--> true OK
+--> 1 expression, 0 arithmetic, 1 logical
+
+Two expressions
+9. `NOT true; 2 - 0`
+--> NOT OK
+--> true OK
+--> 2 OK
+--> - OK
+--> 0 OK
+--> 2 expressions, 1 arithmetic, 1 logical
+
+Three expressions
+10. `true OR false; 1 * 4; NOT true`
+--> true OK
+--> OR OK
+--> false OK
+--> 1 OK
+--> * OK
+--> 4 OK
+--> NOT OK
+--> true OK
+--> 3 expressions, 1 arithmetic, 2 logical
+
+=== Errors ===
+The following inputs contain tokens that are invalid, as well as illegal expressions
+
+No input argument
+1.
+--> Error: No argument supplied.
+
+More than one input argument
+2. `` ``
+--> Error: Too many arguments supplied.
+
+Empty expression
+3. ``
+--> Error: Incomplete expression.
+
+Multiple empty expressions
+4. `;;`
+--> Error: Incomplete expression.
+--> Error: Incomplete expression.
+--> 3 expressions, 0 arithmetic, 0 logical
+
+Trailing ;
+5. `1 + 2;`
+--> 1 OK
+--> + OK
+--> 2 OK
+--> Error: Incomplete expression.
+--> 2 expressions, 1 arithmetic, 0 logical
+
+6. `3 * 2; NOT true;`
+--> 3 OK
+--> * OK
+--> 2 OK
+--> NOT OK
+--> true OK
+--> Error: Incomplete expression.
+--> 3 expressions, 1 arithmetic, 1 logical
+
+Unknown identifier
+7. `1+`
+--> Error: Unknown identifier '1+'
+--> Error: Incomplete expression.
+--> 1 expressions, 0 arithmetic, 0 logical
+
+8. `*2`
+--> Error: Unknown identifier '*2'
+--> Error: Incomplete expression.
+--> 1 expressions, 0 arithmetic, 0 logical
+
+9. `And`
+--> Error: Unknown identifier 'And'
+--> Error: Incomplete expression.
+--> 1 expressions, 0 arithmetic, 0 logical
+
+10. `falsE`
+--> Error: Unknown identifier 'falsE'
+--> Error: Incomplete expression.
+--> 1 expressions, 0 arithmetic, 0 logical
+
+Missing operator
+11. `0`
+--> 0 OK
+--> Error: Missing operator.
+--> Error: Incomplete expression.
+
+12. `false`
+--> false OK
+--> Error: Missing operator.
+--> Error: Incomplete expression.
+
+Unexpected operator
+13. `+`
+--> Error: Unexpected operator.
+--> Error: Missing operand.
+--> Error: Incomplete expression.
+
+14. `AND`
+--> Error: Unexpected operator.
+--> Error: Missing operand.
+--> Error: Incomplete expression.
+
+15. `* NOT`
+--> Error: Unexpected operator.
+--> Error: Unexpected operator.
+--> Error: Missing operand.
+--> Error: Incomplete expression.
+
+16. `AND false`
+--> Error: Unexpected operator.
+--> false OK
+--> 1 expressions, 0 arithmetic, 1 logical
+
+Unknown operator
+17.

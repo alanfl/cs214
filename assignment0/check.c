@@ -1,7 +1,9 @@
 //
 // Created by alanfl on 9/19/19.
 //
-
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE 1
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -139,11 +141,30 @@ int validate_expression(Node* head, Node* error, int expression_index) {
 
     // Check for a leading whitespace in the first token if this
     // is not the first expression
-//    if(expression_index != 0 ) {
-//        if(head != NULL && head->data[0] == ' ') {
-//            head->data = realloc()
-//        }
-//    }
+    if(expression_index != 0 ) {
+        if(head != NULL && head->data[0] == ' ') {
+
+            // If a whitespace was found, shift string so whitespace is removed
+            char * temp = head->data;
+            head->data = realloc(head->data, sizeof(temp) - 1);
+
+            // Something seriously wrong with realloc, immediately terminate
+            if(!head->data) {
+                exit(-1);
+            }
+
+            temp++;
+            while(*temp != '\0') {
+                head->data = temp;
+                temp++;
+            }
+        }
+
+        // Leading whitespace not found, whatever token comes next is unexpected BY DEFAULT
+        else {
+            expected_token_type = -4;
+        }
+    }
 
     // UPDATE: The first legal OPERATOR determines the expression type
     // Iterate tokens until out of tokens
@@ -163,7 +184,7 @@ int validate_expression(Node* head, Node* error, int expression_index) {
         if(token_type == 1) {
             // Not expecting any type of token, this is the first token
             if (expected_token_type == -3 && expression_complete != 1) {
-                printf("Found %s, OK", head->data); // todo remove debug
+                printf("Found %s, OK\n", head->data); // todo remove debug
             }
             // This token was NOT expected
             else if (expected_token_type != 1) {
@@ -173,7 +194,8 @@ int validate_expression(Node* head, Node* error, int expression_index) {
                     add_to_list(error, print_token(head->data));
                 }
                 // Not expected for any other reason
-                else {
+                // UPDATE: exclude from cases where some kind of operand was expected, but a type was not set, so we cannot infer the type
+                else if(expected_token_type == 3 || expected_token_type == 4 || (expression_type != -1 && expected_token_type == 2)){
                     add_to_list(error, print_error("Error: Parse error in expression %d: Unexpected operand", expression_index));
                     add_to_list(error, print_token(head->data));
                 }
@@ -181,6 +203,8 @@ int validate_expression(Node* head, Node* error, int expression_index) {
             // If the expected token was an operand of any sort, then the pattern is finished
             if (expected_token_type == 1 || expected_token_type == 2) {
                 expression_complete = 1;
+
+                printf("Found %s, OK\n", head->data); // todo remove debug
 
                 // We also then expect the next token to be terminating
                 expected_token_type = -1;
@@ -241,7 +265,8 @@ int validate_expression(Node* head, Node* error, int expression_index) {
                     add_to_list(error, print_token(head->data));
                 }
                 // Not expected for any other reason
-                else {
+                // UPDATE: exclude from cases where some kind of operand was expected, but a type was not set, so we cannot infer the type
+                else if(expected_token_type == 3 || expected_token_type == 4 || (expression_type != -1 && expected_token_type == 1)){
                     add_to_list(error, print_error("Error: Parse error in expression %d: Unexpected operand", expression_index));
                     add_to_list(error, print_token(head->data));
                 }
@@ -250,6 +275,8 @@ int validate_expression(Node* head, Node* error, int expression_index) {
             // If the expected token was an operand of any sort, then the pattern is finished
             if (expected_token_type == 1 || expected_token_type == 2) {
                 expression_complete = 1;
+
+                printf("Found %s, OK\n", head->data); // todo remove debug
 
                 // We also then expect the next token to be terminating
                 expected_token_type = -1;
@@ -292,7 +319,7 @@ int validate_expression(Node* head, Node* error, int expression_index) {
                 expression_type = 1;
 
             // No matter what errors are thrown, this token predicts the next
-            expected_token_type = 1;
+            expected_token_type = 2;
             head = head->next;
         }
         // 5. Unary NOT operator
@@ -305,14 +332,17 @@ int validate_expression(Node* head, Node* error, int expression_index) {
             // Note: this MUST be the first token in the pattern, so all subsequent encounters are unexpected
             else {
                 // Expression has ended, this is unexpected
-                if(expression_complete == 1)
+                if(expression_complete == 1) {
                     add_to_list(error, print_error("Error: Parse error in expression %d: Unexpected operator.", expression_index));
+                    add_to_list(error, print_token(head->data));
+                }
             }
 
-
+            // Unary operator immediately sets the expression type ONLY IF no expression type is set
             if (expression_type == -1)
                 expression_type = 1;
 
+            // Regardless of any errors, the next token should be a logical operand
             expected_token_type = 2;
             head = head->next;
         }
@@ -328,9 +358,9 @@ int validate_expression(Node* head, Node* error, int expression_index) {
                 add_to_list(error, print_error("Error: Parse error in expression %d: Unknown identifier.", expression_index));
                 add_to_list(error, print_token(head->data));
             }
+
             // Expected some kind of operand, this is an unknown operand
             // We can assume the pattern is now complete because an operand was expected
-            // even though this identifier was technicall illegal
             else if (expected_token_type == 1 || expected_token_type == 2) {
                 add_to_list(error, print_error("Error: Parse error in expression %d: Unknown operand.", expression_index));
                 add_to_list(error, print_token(head->data));
@@ -338,10 +368,12 @@ int validate_expression(Node* head, Node* error, int expression_index) {
                 expression_complete = 1;
                 expected_token_type = -1;
             }
-            // Expected some kind of operator, next token should be an operand of some kind
-            // Based on prior input
+
+            // Expected some kind of operator, this is an unknown operator
+            // Next token should be an operand of some kind
             else if (expected_token_type == 3 || expected_token_type == 4) {
                 add_to_list(error, print_error("Error: Parse error in expression %d: Unknown operator.", expression_index));
+                add_to_list(error, print_token(head->data));
 
                 // If expected token was of arithmetic type, then next token should be an arithmetic operand token
                 expected_token_type = (expected_token_type == 3) ? 1 : 2;
@@ -350,42 +382,41 @@ int validate_expression(Node* head, Node* error, int expression_index) {
             head = head->next;
         }
 
-        //
-        // 7. NULL/NULL terminator
-        // At top level of eval-scope, this ends the expression
+        // 7. NULL terminator ONLY
+        // At top level of eval-scope, this ends IMMEDIATELY expression
         // However, if the expression isn't complete, add that to the buffer
         else if (token_type == -1) {
             // Expression not complete
             if(expression_complete != 1) {
                 // Case 1: we can identify what was missing
-                if(expected_token_type == 1 || expected_token_type == 3)
+                if(expected_token_type == 1 || expected_token_type == 2)
                     add_to_list(error, print_error("Error: Scan error in expression %d: Missing operand.", expression_index));
 
-                else if (expected_token_type == 2 || expected_token_type == 4)
+                else if (expected_token_type == 3 || expected_token_type == 4)
                     add_to_list(error, print_error("Error: Parse error in expression %d: Missing operator.", expression_index));
 
-                // Case 2: unidentifiable context, returns as an incomplete expression
-                else
-                    add_to_list(error, print_error("Error: Parse error in expression %d: Incomplete expression.", expression_index));
-
-                return expression_type;
+                // This error is added whether or not we can identify what was missing
+                add_to_list(error, print_error("Error: Parse error in expression %d: Incomplete expression.", expression_index));
             }
+
+            head = head->next;
         }
     }
 
-    /*
-     * Cases:
-     * == Legal Cases ==
-     * 1. Arithmetic operand
-     * 2. Arithmetic operator
-     * 3. Logical operand
-     * 4. Logical operator
-     * 5. Unary NOT operator
-     *
-     * == Illegal Cases ==
-     * 6. Any unknown identifier (anything else)
-     * 7. NULL/NULL terminator (immediately ends expression)
-     */
+    // Before returning, check if the expression was completed
+    // If the expression terminated before a pattern could be completed, append errors for what was missing
+    // as well as the incomplete expression error
+    if (expression_complete != 1) {
+        // Missing an operand
+        if (expected_token_type == 1 || expected_token_type == 2) {
+            add_to_list(error, print_error("Error: Parse error in expression %d: Missing operand.", expression_index));
+        }
+
+        if (expected_token_type == 3 || expected_token_type == 4) {
+            add_to_list(error, print_error("Error: Parse error in expression %d: Missing operator.", expression_index));
+        }
+        add_to_list(error, print_error("Error: Parse error in expression %d: Incomplete expression.", expression_index));
+    }
 
     return expression_type;
 }
@@ -399,6 +430,7 @@ int validate_expression(Node* head, Node* error, int expression_index) {
  * 3 = Arithmetic operator token
  * 4 = Logical operator token
  * 5 = Logical, unary, operator token
+ * 6 = NULL terminator token
  */
 int get_token_type(Node* token) {
 
