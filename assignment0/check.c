@@ -179,7 +179,7 @@ int validate_expression(char* expression_str, Node* error, int expression_index)
         // If the expression is considered complete, wasn't terminated, and the error was not added
         // Add the error, and track that the error was added.
         if (expression_complete == 1 && expression_error_added != 1 && token_type != -1) {
-            add_to_list(error, print_error("Error: Scan error in expression %d: Expression was not ended.", expression_index));
+            add_to_list(error, print_error("Error: Parse error in expression %d: Expression was not ended.", expression_index));
             expression_error_added = 1;
         }
 
