@@ -1,9 +1,6 @@
 //
 // Created by alanfl on 9/19/19.
 //
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE 1
-#endif
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -28,6 +25,9 @@ Node* add_token(Node *head, const char *str, int start_index, int end_index);
 // Error stuff
 char* print_error(char* error_msg, int index);
 char* print_token(char* token_data);
+
+// Freeing blocks
+void free_list(Node* head);
 
 int main(int argc, char** argv) {
     if(argc == 1) {
@@ -76,8 +76,8 @@ int main(int argc, char** argv) {
         print_list(error_list);
     }
 
-    free(list);
-    free(error_list);
+    free_list(list);
+    free_list(error_list);
     return 0;
 }
 
@@ -167,6 +167,7 @@ int validate_expression(char* expression_str, Node* error, int expression_index)
         }
     } else {
         head = tokenize(expression_str, ' ');
+        list = head;
     }
 
     // UPDATE: The first legal OPERATOR determines the expression type
@@ -428,7 +429,7 @@ int validate_expression(char* expression_str, Node* error, int expression_index)
         add_to_list(error, print_error("Error: Parse error in expression %d: Incomplete expression.", expression_index));
     }
 
-    free(list);
+    free_list(list);
     return expression_type;
 }
 
@@ -572,13 +573,13 @@ void print_list(Node* head) {
 
 // Frees the list associated with a head
 void free_list(Node* head) {
-    while (head) {
-        Node* temp = head;
+    while (head != NULL) {
+        Node* temp = head->next;
         if(head->data != NULL)
             free(head->data);
 
         free(head);
 
-        head = temp->next;
+        head = temp;
     }
 }
