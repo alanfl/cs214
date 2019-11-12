@@ -5,3 +5,6 @@
 	update = merge
 [submodule "assignemtn1"]
 	update = rebase
+[submodule "assignment2"]
+	path = assignment2
+	url = https://github.com/alanfl/assignment2.git

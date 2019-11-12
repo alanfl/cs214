@@ -15,13 +15,19 @@ int main(int argc, char** argv) {
     if(id == 0) {
         printf("I am the child.\n");
         printf("I have PID: ID %d\n", getpid());
+        return 5;
     } else if (id == -1) {
         printf("Fork failed.\n");
     } else {
         printf("I am the parent.\n");
         printf("Fork returned ID %d\n", id);
         printf("I have PID: ID %d\n", getpid());
+        int status = 0;
+        wait(&status);
+        printf("Child returned %d\n", WEXITSTATUS(status));
     }
+    // int status = 0;
+    // wait(&status);
 
     return 1;
 }
